@@ -1,0 +1,7 @@
+{
+  "name": "stay-in-touch",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "vue"
+}
