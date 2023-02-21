@@ -4,17 +4,25 @@ import { RouteRecordRaw } from 'vue-router';
 const routes: Array<RouteRecordRaw> = [
   {
     path: '',
-    redirect: '/folder/Inbox'
+    redirect: '/contacts',
   },
   {
-    path: '/folder/:id',
-    component: () => import ('../views/FolderPage.vue')
-  }
-]
+    path: '/contacts',
+    component: () => import('../views/ContactsPage.vue'),
+  },
+  {
+    path: '/add',
+    component: () => import('../views/AddPage.vue'),
+  },
+  {
+    path: '/contact/:id',
+    component: () => import('../views/ContactPage.vue'),
+  },
+];
 
 const router = createRouter({
   history: createWebHistory(process.env.BASE_URL),
-  routes
-})
+  routes,
+});
 
-export default router
+export default router;

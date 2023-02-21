@@ -3,22 +3,23 @@
     <ion-split-pane content-id="main-content">
       <ion-menu content-id="main-content" type="overlay">
         <ion-content>
-          <ion-list id="inbox-list">
-            <ion-list-header>Inbox</ion-list-header>
-            <ion-note>hi@ionicframework.com</ion-note>
-  
-            <ion-menu-toggle auto-hide="false" v-for="(p, i) in appPages" :key="i">
-              <ion-item @click="selectedIndex = i" router-direction="root" :router-link="p.url" lines="none" detail="false" class="hydrated" :class="{ selected: selectedIndex === i }">
-                <ion-icon slot="start" :ios="p.iosIcon" :md="p.mdIcon"></ion-icon>
-                <ion-label>{{ p.title }}</ion-label>
+          <ion-list id="pages-list">
+            <ion-list-header>Let's stay in touch</ion-list-header>
+            <ion-note>github.com/svub/lets-stay-in-touch</ion-note>
+
+            <ion-menu-toggle :auto-hide="false" v-for="(page, index) in pages" :key="index">
+              <ion-item router-direction="root" :router-link="page.path" lines="none" :detail="false" class="hydrated"
+                :class="{ selected: page.path === $route.path }">
+                <ion-icon slot="start" :ios="page.iosIcon" :md="page.mdIcon"></ion-icon>
+                <ion-label>{{ page.title }}</ion-label>
               </ion-item>
             </ion-menu-toggle>
           </ion-list>
-  
-          <ion-list id="labels-list">
-            <ion-list-header>Labels</ion-list-header>
-  
-            <ion-item v-for="(label, index) in labels" lines="none" :key="index">
+
+          <ion-list id="groups-list">
+            <ion-list-header>Groups</ion-list-header>
+
+            <ion-item v-for="(label, index) in groups" lines="none" :key="index">
               <ion-icon slot="start" :ios="bookmarkOutline" :md="bookmarkSharp"></ion-icon>
               <ion-label>{{ label }}</ion-label>
             </ion-item>
@@ -30,104 +31,41 @@
   </ion-app>
 </template>
 
-<script lang="ts">
+<script lang="ts" setup>
 import { IonApp, IonContent, IonIcon, IonItem, IonLabel, IonList, IonListHeader, IonMenu, IonMenuToggle, IonNote, IonRouterOutlet, IonSplitPane } from '@ionic/vue';
-import { defineComponent, ref } from 'vue';
-import { useRoute } from 'vue-router';
-import { archiveOutline, archiveSharp, bookmarkOutline, bookmarkSharp, heartOutline, heartSharp, mailOutline, mailSharp, paperPlaneOutline, paperPlaneSharp, trashOutline, trashSharp, warningOutline, warningSharp } from 'ionicons/icons';
+import { addCircleOutline, addCircleSharp, bookmarkOutline, bookmarkSharp, accessibilityOutline, accessibilitySharp } from 'ionicons/icons';
 
-export default defineComponent({
-  name: 'App',
-  components: {
-    IonApp, 
-    IonContent, 
-    IonIcon, 
-    IonItem, 
-    IonLabel, 
-    IonList, 
-    IonListHeader, 
-    IonMenu, 
-    IonMenuToggle, 
-    IonNote, 
-    IonRouterOutlet, 
-    IonSplitPane,
+const pages = [
+  {
+    title: 'Contacts',
+    path: '/contacts',
+    iosIcon: accessibilityOutline, // docs don't mention ios and md properties, but could be automated if it's always outline and sharp for iOS and Android
+    mdIcon: accessibilitySharp,
   },
-  setup() {
-    const selectedIndex = ref(0);
-    const appPages = [
-      {
-        title: 'Inbox',
-        url: '/folder/Inbox',
-        iosIcon: mailOutline,
-        mdIcon: mailSharp
-      },
-      {
-        title: 'Outbox',
-        url: '/folder/Outbox',
-        iosIcon: paperPlaneOutline,
-        mdIcon: paperPlaneSharp
-      },
-      {
-        title: 'Favorites',
-        url: '/folder/Favorites',
-        iosIcon: heartOutline,
-        mdIcon: heartSharp
-      },
-      {
-        title: 'Archived',
-        url: '/folder/Archived',
-        iosIcon: archiveOutline,
-        mdIcon: archiveSharp
-      },
-      {
-        title: 'Trash',
-        url: '/folder/Trash',
-        iosIcon: trashOutline,
-        mdIcon: trashSharp
-      },
-      {
-        title: 'Spam',
-        url: '/folder/Spam',
-        iosIcon: warningOutline,
-        mdIcon: warningSharp
-      }
-    ];
-    const labels = ['Family', 'Friends', 'Notes', 'Work', 'Travel', 'Reminders'];
-    
-    const path = window.location.pathname.split('folder/')[1];
-    if (path !== undefined) {
-      selectedIndex.value = appPages.findIndex(page => page.title.toLowerCase() === path.toLowerCase());
-    }
-    
-    const route = useRoute();
-    
-    return { 
-      selectedIndex,
-      appPages, 
-      labels,
-      archiveOutline, 
-      archiveSharp, 
-      bookmarkOutline, 
-      bookmarkSharp, 
-      heartOutline, 
-      heartSharp, 
-      mailOutline, 
-      mailSharp, 
-      paperPlaneOutline, 
-      paperPlaneSharp, 
-      trashOutline, 
-      trashSharp, 
-      warningOutline, 
-      warningSharp,
-      isSelected: (url: string) => url === route.path ? 'selected' : ''
-    }
-  }
-});
+  {
+    title: 'Add',
+    path: '/add',
+    iosIcon: addCircleOutline,
+    mdIcon: addCircleSharp,
+  },
+];
+
+const groups = ['Family', 'Friends', 'Notes', 'Work', 'Travel', 'Reminders'];
 </script>
+
+<style>
+[routerlink] {
+  cursor: pointer;
+}
+</style>
 
 <style scoped>
 ion-menu ion-content {
   --background: var(--ion-item-background, var(--ion-background-color, #fff));
+}
+
+ion-menu ion-item {
+  cursor: pointer;
 }
 
 ion-menu.md ion-content {
@@ -150,18 +88,18 @@ ion-menu.md ion-note {
   padding-left: 10px;
 }
 
-ion-menu.md ion-list#inbox-list {
+ion-menu.md ion-list#pages-list {
   border-bottom: 1px solid var(--ion-color-step-150, #d7d8da);
 }
 
-ion-menu.md ion-list#inbox-list ion-list-header {
+ion-menu.md ion-list#pages-list ion-list-header {
   font-size: 22px;
   font-weight: 600;
 
   min-height: 20px;
 }
 
-ion-menu.md ion-list#labels-list ion-list-header {
+ion-menu.md ion-list#groups-list ion-list-header {
   font-size: 16px;
 
   margin-bottom: 18px;

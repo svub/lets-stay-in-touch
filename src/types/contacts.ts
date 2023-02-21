@@ -1,6 +1,13 @@
 export enum LocationPrecision {
   exact, city, state, country, continent,
 }
+export const locationPrecisionLabels = {
+  [LocationPrecision.exact]: "exact",
+  [LocationPrecision.city]: "city",
+  [LocationPrecision.state]: "state",
+  [LocationPrecision.country]: "country",
+  [LocationPrecision.continent]: "continent",
+}
 
 export type ContactLocation = {
   precision: LocationPrecision;
