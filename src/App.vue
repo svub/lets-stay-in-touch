@@ -34,20 +34,17 @@
 <script lang="ts" setup>
 import { IonApp, IonContent, IonIcon, IonItem, IonLabel, IonList, IonListHeader, IonMenu, IonMenuToggle, IonNote, IonRouterOutlet, IonSplitPane } from '@ionic/vue';
 import { addCircleOutline, addCircleSharp, bookmarkOutline, bookmarkSharp, accessibilityOutline, accessibilitySharp } from 'ionicons/icons';
+import { profileRoute, NamedRouteRecord, addRoute, contactsRoute } from '@/router/index';
+
+function menuEntry(route: NamedRouteRecord, iosIcon: string, mdIcon: string) {
+  // docs don't mention ios and md properties, but could be automated if it's always outline and sharp for iOS and Android
+  return { ...route, iosIcon, mdIcon };
+}
 
 const pages = [
-  {
-    title: 'Contacts',
-    path: '/contacts',
-    iosIcon: accessibilityOutline, // docs don't mention ios and md properties, but could be automated if it's always outline and sharp for iOS and Android
-    mdIcon: accessibilitySharp,
-  },
-  {
-    title: 'Add',
-    path: '/add',
-    iosIcon: addCircleOutline,
-    mdIcon: addCircleSharp,
-  },
+  menuEntry(contactsRoute, accessibilityOutline, accessibilitySharp),
+  menuEntry(profileRoute, addCircleOutline, addCircleSharp),
+  menuEntry(addRoute, addCircleOutline, addCircleSharp),
 ];
 
 const groups = ['Family', 'Friends', 'Notes', 'Work', 'Travel', 'Reminders'];

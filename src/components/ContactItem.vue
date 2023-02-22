@@ -5,7 +5,7 @@
     </ion-avatar>
     <ion-label>
       <h2> {{
-        contact.profile.label ? `${contact.profile.label} (${contact.profile.name}` : contact.profile.name
+        contact.profile.label ? `${contact.profile.label} (${contact.profile.name})` : contact.profile.name
       }}</h2>
       <h3> {{ contact.profile.location.label }}</h3>
       <p>
