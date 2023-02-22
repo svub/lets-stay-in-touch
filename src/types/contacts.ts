@@ -43,3 +43,8 @@ export type Contact = {
   sources: string[];
 };
 
+export type Me = {
+  pk: JsonWebKey,
+  contact: Contact,
+}
+
