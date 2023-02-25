@@ -20,16 +20,3 @@ export default {
         });
     }
 }
-
-// export default {
-//     methods:{
-//     async getCurrentPosition() {
-//         const coordinates = await Geolocation.getCurrentPosition();
-//         console.log('Current', coordinates);
-//     },
-//     watchPosition() {
-//         const wait = Geolocation.watchPosition({}, (position, err) => {
-//         })
-//     }
-//     }
-// }
