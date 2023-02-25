@@ -6,7 +6,7 @@
           <ion-list id="pages-list">
             <ion-list-header>Let's stay in touch</ion-list-header>
             <ion-note>github.com/svub/lets-stay-in-touch</ion-note>
-
+            <contact-location :position="coordinates"></contact-location>
             <ion-menu-toggle :auto-hide="false" v-for="(page, index) in pages" :key="index">
               <ion-item router-direction="root" :router-link="page.path" lines="none" :detail="false" class="hydrated"
                 :class="{ selected: page.path === $route.path }">
@@ -51,6 +51,34 @@ const pages = [
 ];
 
 const groups = ['Family', 'Friends', 'Notes', 'Work', 'Travel', 'Reminders'];
+
+</script>
+
+<script lang="ts">
+import LocationService from '@/services/LocationService';
+import ContactLocation from "./components/ContactLocation.vue";
+
+export default {
+  data() {
+    return {
+      coordinates: {},
+    };
+  },
+  components: {
+    ContactLocation,
+  },
+  methods: {
+    async getCurrentPosition() {
+      try {
+        const response = await LocationService.geoCurrentPosition();
+        // JSON responses are automatically parsed.
+        this.coordinates = response;
+      } catch (error) {
+        console.log(error);
+      }
+    },
+  },
+};
 </script>
 
 <style>

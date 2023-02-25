@@ -23,7 +23,7 @@ But you're always in control! For each friend, a new key pair is created. This a
 ```
 yarn
 corepack enable && corepack prepare yarn@stable --activate && yarn set version 3.4.1 \
-yarn global add @ionic/cli@latest native-run cordova-res
+yarn dlx @ionic/cli@latest native-run cordova-res
 ```
 
 ### Run
@@ -59,3 +59,8 @@ Note: Encountered issues, see https://github.com/ionic-team/vscode-extension/iss
         * TODO app https://github.com/mdn/todo-vue
     * Guides
         * Mozilla Vue guide https://developer.mozilla.org/en-US/docs/Learn/Tools_and_testing/Client-side_JavaScript_frameworks/Vue_getting_started
+    * Geolocation
+        * https://ionicframework.com/docs/native/geolocation
+        * https://www.section.io/engineering-education/how-to-interact-with-an-api-from-a-vuejs-application/
+        * [ ] TODO - configure iOS permissions - https://ionicframework.com/docs/native/geolocation#ios
+        * [ ] TODO - configure Android permissions - https://ionicframework.com/docs/native/geolocation#android
