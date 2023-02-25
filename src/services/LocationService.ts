@@ -3,7 +3,6 @@ import { Geolocation, Position } from '@capacitor/geolocation';
 export default {
     async geoCurrentPosition() {
         const coordinates = await Geolocation.getCurrentPosition();
-
         console.log('Current position:', JSON.stringify(coordinates, null, 2));
         return coordinates;
     },

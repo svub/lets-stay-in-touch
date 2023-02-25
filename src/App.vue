@@ -6,7 +6,7 @@
           <ion-list id="pages-list">
             <ion-list-header>Let's stay in touch</ion-list-header>
             <ion-note>github.com/svub/lets-stay-in-touch</ion-note>
-            <contact-location :position="coordinates"></contact-location>
+            <contact-location :coordinates="coordinates"></contact-location>
             <ion-menu-toggle :auto-hide="false" v-for="(page, index) in pages" :key="index">
               <ion-item router-direction="root" :router-link="page.path" lines="none" :detail="false" class="hydrated"
                 :class="{ selected: page.path === $route.path }">
@@ -73,6 +73,14 @@ export default {
         const response = await LocationService.geoCurrentPosition();
         // JSON responses are automatically parsed.
         this.coordinates = response;
+        // return await new Promise((resolve, reject) => {
+        //   return resolve({
+        //     coords: {
+        //         latitude: 55,
+        //         longitude: 38,
+        //     }
+        //   });
+        // });
       } catch (error) {
         console.log(error);
       }
