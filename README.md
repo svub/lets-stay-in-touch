@@ -52,4 +52,10 @@ Note: Encountered issues, see https://github.com/ionic-team/vscode-extension/iss
 
 ### References
 
-* https://ionicframework.com/docs/vue/your-first-app
+* Ionic
+    * https://ionicframework.com/docs/vue/your-first-app
+* Vue
+    * Apps
+        * TODO app https://github.com/mdn/todo-vue
+    * Guides
+        * Mozilla Vue guide https://developer.mozilla.org/en-US/docs/Learn/Tools_and_testing/Client-side_JavaScript_frameworks/Vue_getting_started
