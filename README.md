@@ -21,10 +21,12 @@ But you're always in control! For each friend, a new key pair is created. This a
     * Optionally via installing [NVM](https://github.com/nvm-sh/nvm) and running `nvm use`
 * Install dependencies and run
 ```
-yarn
-corepack enable && corepack prepare yarn@stable --activate && yarn set version 3.4.1 \
+corepack enable && corepack prepare yarn@stable --activate && yarn set version 3.4.1
 yarn dlx @ionic/cli@latest native-run cordova-res
+yarn
 ```
+
+Note: Since we're using Yarn 3 instead of Yarn 1, we use `yarn dlx ...` instead of `yarn global add ...`
 
 ### Run
 ```
