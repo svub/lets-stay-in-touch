@@ -12,3 +12,50 @@ From that moment on, they can update each other in a secure and decentralized ma
 
 But you're always in control! For each friend, a new key pair is created. This allows you to push your data updates to each friend individually which means you are in control to decide for each of your friends which updates and degree of detail they will see - and that you can always change your mind because you have control over what each contact can see separately or by creating groups of contacts.
 
+## Contributing
+
+### Setup Dependencies
+
+* Fork and clone the repository
+* Install Node.js 19.6.0
+    * Optionally via installing [NVM](https://github.com/nvm-sh/nvm) and running `nvm use`
+* Install dependencies and run
+```
+yarn
+corepack enable && corepack prepare yarn@stable --activate && yarn set version 3.4.1 \
+yarn global add @ionic/cli@latest native-run cordova-res
+```
+
+### Run
+```
+ionic serve
+```
+
+* Open http://localhost:8100
+
+### Debugging for Web
+
+* [Debugging for Web](https://marketplace.visualstudio.com/items?itemName=ionic.ionic#debugging-for-web)
+    * Click Visual Studio Code Extension icon > Debug > Web
+
+Note: Encountered issues, see https://github.com/ionic-team/vscode-extension/issues/90
+
+### Developer Experience
+
+#### Visual Studio Code
+
+* Install extensions from the [Visual Studio Code Marketplace](https://marketplace.visualstudio.com) recommended in ./.vscode/extensions.json
+
+### Troubleshooting
+
+* If you get Visual Studio Code error `/bin/sh: 1: npx: not found` or `/bin/sh: 1: npm: not found` then you need to restart Visual Studio code after installing Node.js
+
+### References
+
+* Ionic
+    * https://ionicframework.com/docs/vue/your-first-app
+* Vue
+    * Apps
+        * TODO app https://github.com/mdn/todo-vue
+    * Guides
+        * Mozilla Vue guide https://developer.mozilla.org/en-US/docs/Learn/Tools_and_testing/Client-side_JavaScript_frameworks/Vue_getting_started
