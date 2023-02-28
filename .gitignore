@@ -24,9 +24,12 @@ npm-debug.log*
 /.versions
 /.vscode/*
 !/.vscode/extensions.json
+/.yarn/cache
+/.yarn/install-state.gz
 /coverage
 /dist
 /node_modules
 /platforms
 /plugins
 /www
+
