@@ -20,6 +20,7 @@
     "@ionic/vue-router": "^6.0.0",
     "core-js": "^3.6.5",
     "ionicons": "^6.0.3",
+    "nominatim-browser": "^2.1.0",
     "pinia": "^2.0.28",
     "vue": "^3.2.21",
     "vue-router": "^4.0.12"
@@ -43,10 +44,10 @@
     "cypress": "^8.7.0",
     "eslint": "^8.4.1",
     "eslint-plugin-vue": "^9.9.0",
-    "vue-eslint-parser": "^9.1.0",
     "jest": "^27.3.1",
     "ts-jest": "^27.0.7",
-    "typescript": "^4.3.5"
+    "typescript": "^4.3.5",
+    "vue-eslint-parser": "^9.1.0"
   },
   "description": "An Ionic project"
 }

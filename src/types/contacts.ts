@@ -35,7 +35,7 @@ export type ContactUrlItem = {
 }
 
 export type Contact = {
-  id: string; // address or pub?
+  id: string; // address
   pub: JsonWebKey;
   profile: ContactProfile;
   data: ContactDataItem[];
@@ -43,8 +43,16 @@ export type Contact = {
   sources: string[];
 };
 
-export type Me = {
-  pk: JsonWebKey,
-  contact: Contact,
+export enum Repositories {
+  test
+}
+export const repositoryNames = {
+  [Repositories.test]: "test",
+}
+
+
+export type Repository = {
+  id: Repositories,
+  configuration: string, // each plugin can do with that as it pleases
 }
 
