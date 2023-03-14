@@ -50,7 +50,6 @@ export const repositoryNames = {
   [Repositories.test]: "test",
 }
 
-
 export type Repository = {
   id: Repositories,
   configuration: string, // each plugin can do with that as it pleases
