@@ -20,6 +20,8 @@
     "@ionic/vue-router": "^6.0.0",
     "core-js": "^3.6.5",
     "ionicons": "^6.0.3",
+    "localforage": "^1.10.0",
+    "lodash": "^4.17.21",
     "nominatim-browser": "^2.1.0",
     "pinia": "^2.0.28",
     "vue": "^3.2.21",
@@ -28,6 +30,7 @@
   "devDependencies": {
     "@capacitor/cli": "4.6.1",
     "@types/jest": "^27.0.2",
+    "@types/lodash": "^4.14.191",
     "@typescript-eslint/eslint-plugin": "^5.52.0",
     "@typescript-eslint/parser": "^5.52.0",
     "@vue/cli-plugin-babel": "~5.0.0-rc.1",
