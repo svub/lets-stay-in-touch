@@ -9,11 +9,11 @@
       }}</h2>
       <h3> {{ contact.profile.location.label }}</h3>
       <p>
-        <a v-for="url in contact.urls" :href="url.url" :key="url.url">
+        <a v-for="url in contact.profile.urls" :href="url.url" :key="url.url">
           {{ url.label }}
         </a>
       </p>
-      <p v-for="data in contact.data" :key="data.key + data.value">
+      <p v-for="data in contact.profile.data" :key="data.key + data.value">
         {{ data.key }}: {{ data.value }}
       </p>
     </ion-label>
@@ -34,6 +34,7 @@ const props = defineProps<{
 const notFound = {
   id: "",
   pub: { "alg": "RSA-OAEP-256", "e": "AQAB", "ext": true, "key_ops": [], "kty": "RSA", "n": "" },
+  secret: 0,
   profile: {
     avatar: "", // show error image
     location: {
@@ -41,10 +42,10 @@ const notFound = {
       precision: LocationPrecision.exact,
     },
     name: `User ${props.id} not found`,
+    data: [],
+    urls: [],
+    sources: [],
   },
-  data: [],
-  urls: [],
-  sources: [],
 } as Contact;
 
 // TODO: what's the elegant way of saying "either ID or contract is required"?

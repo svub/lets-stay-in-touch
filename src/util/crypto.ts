@@ -83,3 +83,7 @@ export async function parsePublicKey(string: string) {
 export async function parsePrivateKey(string: string) {
   return importPrivateKey(JSON.parse(string) as JsonWebKey);
 }
+
+export function createSecret() {
+  return Math.floor(Math.random() * 1e10);
+}

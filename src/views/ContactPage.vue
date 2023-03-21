@@ -46,21 +46,21 @@
         </ion-grid>
         <h3> Links </h3>
         <ion-grid>
-          <ion-row v-for="(link, index) of contact.urls" :key="index">
+          <ion-row v-for="(link, index) of contact.profile.urls" :key="index">
             <ion-col size="2">{{ link.label }}</ion-col>
             <ion-col><a :href="link.url">{{ link.url }}</a></ion-col>
           </ion-row>
         </ion-grid>
         <h3> Data </h3>
         <ion-grid>
-          <ion-row v-for="(data, index) of contact.data" :key="index">
+          <ion-row v-for="(data, index) of contact.profile.data" :key="index">
             <ion-col size="2">{{ data.key }}</ion-col>
             <ion-col>{{ data.value }}</ion-col>
           </ion-row>
         </ion-grid>
         <h3> Sources </h3>
         <ion-grid>
-          <ion-row v-for="(source, index) of contact.sources" :key="index">
+          <ion-row v-for="(source, index) of contact.profile.sources" :key="index">
             <ion-col>{{ source }}</ion-col>
           </ion-row>
         </ion-grid>

@@ -22,6 +22,9 @@ export type ContactProfile = {
   label?: string;
   avatar: string;
   location: ContactLocation;
+  data: ContactDataItem[];
+  urls: ContactUrlItem[];
+  sources: string[];
 }
 
 export type ContactDataItem = {
@@ -37,10 +40,8 @@ export type ContactUrlItem = {
 export type Contact = {
   id: string; // address
   pub: JsonWebKey;
+  secret: number;
   profile: ContactProfile;
-  data: ContactDataItem[];
-  urls: ContactUrlItem[];
-  sources: string[];
 };
 
 export enum Repositories {

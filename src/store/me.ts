@@ -11,6 +11,9 @@ async function createMe(): Promise<{pk: JsonWebKey; contact: Contact}> {
   return {
     pk,
     contact: {
+      id, 
+      pub,
+      secret: 0,
       profile: {
         avatar: "",
         name: "You",
@@ -19,12 +22,10 @@ async function createMe(): Promise<{pk: JsonWebKey; contact: Contact}> {
           countryCode: "DE",
           precision: LocationPrecision.city,
         },
+        urls: [],
+        data: [],
+        sources: [],
       },
-      id, 
-      pub,
-      urls: [],
-      data: [],
-      sources: [],
     }
   };
 }
