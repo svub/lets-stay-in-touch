@@ -33,7 +33,7 @@
 
 <script lang="ts" setup>
 import { IonApp, IonContent, IonIcon, IonItem, IonLabel, IonList, IonListHeader, IonMenu, IonMenuToggle, IonNote, IonRouterOutlet, IonSplitPane } from '@ionic/vue';
-import { addCircleOutline, addCircleSharp, bookmarkOutline, bookmarkSharp, accessibilityOutline, accessibilitySharp } from 'ionicons/icons';
+import { addCircleOutline, addCircleSharp, bookmarkOutline, bookmarkSharp, peopleOutline, peopleSharp, personSharp, personOutline } from 'ionicons/icons';
 import { profileRoute, NamedRouteRecord, addRoute, contactsRoute } from '@/router/index';
 
 function menuEntry(route: NamedRouteRecord, iosIcon: string, mdIcon: string) {
@@ -42,8 +42,8 @@ function menuEntry(route: NamedRouteRecord, iosIcon: string, mdIcon: string) {
 }
 
 const pages = [
-  menuEntry(contactsRoute, accessibilityOutline, accessibilitySharp),
-  menuEntry(profileRoute, addCircleOutline, addCircleSharp),
+  menuEntry(contactsRoute, peopleOutline, peopleSharp),
+  menuEntry(profileRoute, personOutline, personSharp),
   menuEntry(addRoute, addCircleOutline, addCircleSharp),
 ];
 
