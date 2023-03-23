@@ -17,15 +17,17 @@
       </ion-header>
 
       <ion-list>
-        <ion-list-header>
-          <ion-label>
-            Test category
-          </ion-label>
-        </ion-list-header>
-        <ContactItem v-for="id in contacts.keys()" :key="id" :id="id" router-direction="forward"
-          :routerLink="`/contact/${id}`" detail="true">
-        </ContactItem>
-        <div v-if="contacts.size < 1" id="container">
+        <template v-if="contacts.length > 0">
+          <ion-list-header>
+            <ion-label>
+              Test category
+            </ion-label>
+          </ion-list-header>
+          <ContactItem v-for="{ id } in contacts" :key="id" :id="id" router-direction="forward"
+            :routerLink="`/contact/${id}`" detail="true">
+          </ContactItem>
+        </template>
+        <div v-else id="container">
           <strong class="capitalize">Empty</strong>
           <p></p>
         </div>

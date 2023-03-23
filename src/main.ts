@@ -35,7 +35,13 @@ localForage.config({
 // TODO: consider extracting this into generic module, needed this functionality in two projects already.
 async function persistencePlugin({ store }: { store: Store }) {
   const key = store.$id + '-state';
-
+  const persist = () => {
+    // plain objects should work but caused problems with indexedDB, to be tested, but serialized works always.
+    const data = JSON.stringify(store.$state);
+    localStorage.setItem(key, data);
+    localForage.setItem(key, data);
+  };
+  
   let quick = localStorage.getItem(key)
   if (quick) {
     try {
@@ -44,18 +50,17 @@ async function persistencePlugin({ store }: { store: Store }) {
       quick = null; // trigger patching via localForage
     }
   }
-
+  
   const stored = await localForage.getItem(key) as string;
   if (stored && quick != stored) {
-      store.$patch(JSON.parse(stored))
-      localStorage.setItem(key, stored);
+    store.$patch(JSON.parse(stored))
+    localStorage.setItem(key, stored);
+  } 
+  if (quick && !stored) {
+    persist();
   }
 
-  store.$subscribe(debounce(() => {
-    const data = JSON.stringify(store.$state); // plain objects should work but caused problems, to be tested, but serialized works always.
-    localStorage.setItem(key, data);
-    localForage.setItem(key, data);
-  }, 50));
+  store.$subscribe(debounce(persist, 50));
 }
 
 const pinia = createPinia();
