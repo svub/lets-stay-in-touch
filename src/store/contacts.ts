@@ -6,14 +6,16 @@ import { computed, ref } from 'vue';
 export const DUMMY = location.href.indexOf('localhost') > -1;
 
 export const useContactsStore = defineStore('contacts', () => {
-  const contacts = ref(new Map<string, Contact>());
+  const contacts = ref(new Array<Contact>());
 
-  const ids = computed(() => contacts.value.keys());
-  const all = computed(() => contacts.value.values());
+  const ids = computed(() => contacts.value.map(contact => contact.id));
+  const all = computed(() => contacts.value); // legacy
 
-  const add = (contact: Contact) => contacts.value.set(contact.id, contact);
+  // TODO? avoid duplicates? error on duplicate? (dup via ID)
+  const add = (contact: Contact) => contacts.value.push(contact);
+  const get = (id: string) => contacts.value.find(contact => contact.id === id);
 
-  if (DUMMY) {
+  if (DUMMY && contacts.value.length < 1) {
     getPeter().then(peter => add(peter));
   }
 
@@ -22,5 +24,6 @@ export const useContactsStore = defineStore('contacts', () => {
     ids, // getters
     all, 
     add, // actions
+    get,
   };
 });
