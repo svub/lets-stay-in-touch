@@ -35,6 +35,21 @@ export function fromHex(hex: string) {
   return new Uint8Array((hex.match(/../g) ?? []).map(h => parseInt(h, 16)));
 }
 
+export function toBase64(bytes: ArrayBuffer) {
+  const uint8Array = new Uint8Array(bytes);
+  return btoa(String.fromCharCode(...uint8Array));
+}
+
+export function fromBase64(string: string) {
+  const binaryString = atob(string);
+  const length: number = binaryString.length;
+  const uint8ArrayDecoded: Uint8Array = new Uint8Array(length);
+  for (let i = 0; i < length; i++) {
+    uint8ArrayDecoded[i] = binaryString.charCodeAt(i);
+  }
+  return uint8ArrayDecoded.buffer;
+}
+
 export function stringToHex(data: string) {
   return toHex(encoder.encode(data));
 }
