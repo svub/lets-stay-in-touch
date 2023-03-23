@@ -1,3 +1,5 @@
+import { RepositorySource } from "./repositories";
+
 export enum LocationPrecision {
   exact, city, state, country, continent,
 }
@@ -18,13 +20,14 @@ export type ContactLocation = {
 }
 
 export type ContactProfile = {
+  version: number;
   name: string;
   label?: string;
   avatar: string;
   location: ContactLocation;
   data: ContactDataItem[];
   urls: ContactUrlItem[];
-  sources: string[];
+  sources: RepositorySource[];
 }
 
 export type ContactDataItem = {
@@ -43,16 +46,3 @@ export type Contact = {
   secret: number;
   profile: ContactProfile;
 };
-
-export enum Repositories {
-  test
-}
-export const repositoryNames = {
-  [Repositories.test]: "test",
-}
-
-export type Repository = {
-  id: Repositories,
-  configuration: string, // each plugin can do with that as it pleases
-}
-

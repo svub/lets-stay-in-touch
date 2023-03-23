@@ -31,6 +31,7 @@ export async function customDummyContact(name: string, location: ContactLocation
     pub: await exportKey(pub),
     secret,
     profile: {
+      version: 0,
       avatar: '',
       location,
       name,

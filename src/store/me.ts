@@ -1,7 +1,8 @@
 import { defineStore } from "pinia";
 import { ref } from "vue";
-import { Contact, LocationPrecision, Repository } from "@/types/contacts";
+import { Contact, LocationPrecision } from "@/types/contacts";
 import { address, createKeyPair, exportKey } from '@/util/crypto';
+import { Repository } from "@/types/repositories";
 
 async function createMe(): Promise<{pk: JsonWebKey; contact: Contact}> {
   const pair = await createKeyPair();
@@ -15,6 +16,7 @@ async function createMe(): Promise<{pk: JsonWebKey; contact: Contact}> {
       pub,
       secret: 0,
       profile: {
+        version: 0,
         avatar: "",
         name: "You",
         location: {
@@ -31,19 +33,22 @@ async function createMe(): Promise<{pk: JsonWebKey; contact: Contact}> {
 }
 
 export const useMeStore = defineStore('me', () => {
-  const contact = ref<Contact>();
   const pk = ref<JsonWebKey>();
-  const previousMeHash = ref("");
+  const contact = ref<Contact>();
   const repositories = ref<Array<Repository>>([]);
+  const previousHash = ref("");
 
+  // start creating a new profile while waiting for local storage to load back-up
   createMe().then(created => { 
-    ({ pk: pk.value, contact: contact.value } = created);
+    if (!contact.value) { // back loaded?
+      ({ pk: pk.value, contact: contact.value } = created);
+    }
   });
 
   return {
     pk,
     contact, 
-    previousMeHash,
+    previousHash,
     repositories,
   };
 });

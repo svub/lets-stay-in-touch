@@ -70,32 +70,33 @@
         </ion-list>
         <h3> Links </h3>
         <ion-list>
-          <ion-item v-for="(link, index) of contact.urls" :key="index">
+          <ion-item v-for="(link, index) of contact.profile.urls" :key="index">
             <ion-label>Label</ion-label>
             <ion-input v-model.trim="link.label"></ion-input>
             <ion-label>URL</ion-label>
             <ion-input v-model.trim="link.url"></ion-input>
           </ion-item>
-          <ion-button @click="contact!.urls.push({ label: '', url: '' })">+</ion-button>
+          <ion-button @click="contact!.profile.urls.push({ label: '', url: '' })">+</ion-button>
         </ion-list>
         <h3> Data </h3>
         <ion-list>
-          <ion-item v-for="(link, index) of contact.data" :key="index">
+          <ion-item v-for="(link, index) of contact.profile.data" :key="index">
             <ion-label>Label</ion-label>
             <ion-input v-model.trim="link.key"></ion-input>
             <ion-label>Value</ion-label>
             <ion-input v-model.trim="link.value"></ion-input>
           </ion-item>
-          <ion-button @click="contact!.data.push({ key: '', value: '' })">+</ion-button>
+          <ion-button @click="contact!.profile.data.push({ key: '', value: '' })">+</ion-button>
         </ion-list>
         <h3> Repositories </h3>
         <ion-list>
+          <ion-item v-if="repositories.length < 1">No repositories configure yet. Add one below.</ion-item>
           <ion-item v-for="(repository, index) of repositories" :key="index">
             <ion-label>{{ repositoryNames[repository.id] }}</ion-label>
             <ion-textarea v-model.trim="repository.configuration"></ion-textarea>
-            <ion-button @click="configure(repository)">Reconfigure</ion-button>
+            <ion-button @click="enableRepository(repository)">Reconfigure</ion-button>
           </ion-item>
-          <p>Create:</p>
+          <p>Add a repository:</p>
           <ion-select v-model.number="newRepositoryType" :selected-text="repositoryNames[newRepositoryType]">
             <ion-select-option v-for="(name, key) of repositoryNames" :value="key" :key="key">{{ name
             }}</ion-select-option>
@@ -103,7 +104,7 @@
           <ion-button @click="repositories.push({ id: newRepositoryType, configuration: '' })">+</ion-button>
         </ion-list>
         <p>
-          <ion-button @click="update()">Update</ion-button>
+          <ion-button @click="pushUpdate()">Update</ion-button>
         </p>
       </template>
       <template v-else>
@@ -116,15 +117,17 @@
 <script lang="ts" setup>
 import { useMeStore } from '@/store';
 import { IonButtons, IonContent, IonHeader, IonList, IonItem, IonLabel, IonMenuButton, IonPage, IonTitle, IonToolbar, IonInput, IonSelect, IonSelectOption, IonButton, IonTextarea } from '@ionic/vue';
-import { locationPrecisionLabels, Repository, Repositories, repositoryNames } from '@/types/contacts';
+import { locationPrecisionLabels } from '@/types/contacts';
+import { Repositories, repositoryNames } from '@/types/repositories';
 import ContactItem from '@/components/ContactItem.vue';
 import { storeToRefs } from 'pinia';
 import { countryCodes } from '@/util/countryCodes';
 import { locationMetadata } from '@/util/osm';
-import { update, configure } from '@/util/backend';
+import { pushUpdate, enableRepository } from '@/util/storage';
 import { ref } from 'vue';
 
 const { contact, repositories } = storeToRefs(useMeStore());
+console.log('Profile page: me contact', JSON.stringify(contact.value, undefined, ' '));
 const oldMe = JSON.stringify(contact.value);
 const newRepositoryType = ref(Repositories.test);
 
