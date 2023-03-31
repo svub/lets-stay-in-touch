@@ -45,11 +45,12 @@ const notFound = {
     data: [],
     urls: [],
     sources: [],
+    version: 0,
   },
 } as Contact;
 
 // TODO: what's the elegant way of saying "either ID or contract is required"?
-const getContact = () => props.data ? props.data : (props.id ? useContactsStore().contacts.get(props.id) : null);
+const getContact = () => props.data ? props.data : (props.id ? useContactsStore().get(props.id) : null);
 const contact = computed(() => getContact() || notFound);
 
 </script>

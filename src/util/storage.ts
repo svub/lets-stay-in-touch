@@ -21,8 +21,8 @@ export async function pushUpdate(progress = ref(0)) {
     return console.warn('Pushed for update but users data hash hasn\'t changed');
   }
 
-  // v1: for each contact, encrypt and push data to all configured remote storage places.
   // TODO v2: keep in mind which contact is to see what information.
+  // for each contact, encrypt and push data to all configured remote storage places.
   const contacts = [...contactsStore.contacts.values()];
   me.profile.version++;
   const data = JSON.stringify(me.profile);
@@ -49,6 +49,8 @@ export async function pushUpdate(progress = ref(0)) {
 
 export async function pullUpdates(progress = ref(0), updatedIds = ref<Array<string>>([])) {
   // for each contact and each configured repository, pull, decrypt, and store updated contact profile
+  // to allow for bulk requests, process restructured to:
+  // for all repos, pull available updates in parallel, for all results, decrypt and update contact profile with latest version
   const { contact: me, pk } = meStore;
   const contacts = [...contactsStore.contacts.values()];
   const plugins = loadAllPlugins();
@@ -75,6 +77,7 @@ export async function pullUpdates(progress = ref(0), updatedIds = ref<Array<stri
   for (const [index, result] of results.entries()) {
     const decrypted = await decrypt(fromBase64(result.data), key);
     const update = JSON.parse(decrypted) as ContactProfile;
+    // TODO get rid of ! and do proper error handling (though impossible to be undefined at this point)
     const id = entries.get(result.address)!.id;
     const contact = contactsStore.get(id)!;
     if (update.version > contact.profile.version) {
