@@ -26,6 +26,7 @@
     "nominatim-browser": "^2.1.0",
     "pinia": "^2.0.28",
     "vue": "^3.2.21",
+    "vue-clipboard3": "^2.0.0",
     "vue-router": "^4.0.12"
   },
   "devDependencies": {

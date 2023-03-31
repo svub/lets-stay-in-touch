@@ -40,6 +40,10 @@ export function toBase64(bytes: ArrayBuffer) {
   return btoa(String.fromCharCode(...uint8Array));
 }
 
+export function stringToBase64(string: string) {
+  return toBase64(encoder.encode(string));
+}
+
 export function fromBase64(string: string) {
   const binaryString = atob(string);
   const length: number = binaryString.length;
@@ -48,6 +52,10 @@ export function fromBase64(string: string) {
     uint8ArrayDecoded[i] = binaryString.charCodeAt(i);
   }
   return uint8ArrayDecoded.buffer;
+}
+
+export function stringFromBase64(string: string) {
+  return decoder.decode(fromBase64(string));
 }
 
 export function stringToHex(data: string) {
