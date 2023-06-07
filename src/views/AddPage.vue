@@ -85,6 +85,8 @@ import { Contact } from '@/types/contacts';
 import ContactItem from '@/components/ContactItem.vue';
 import { stringFromBase64, stringToBase64 } from '@/util/crypto';
 import { toast, toastWarning } from '@/util/toast';
+import { pushBackup } from '@/util/storage';
+import { delay } from 'lodash';
 
 const router = useRouter(); // added const here as router needs to be injected which doesn't work after "await".
 const contactStore = useContactsStore();
@@ -118,7 +120,7 @@ async function copyInvitation() {
 
 const go = (contact: Contact) => {
   contactStore.add(contact);
-  // TODO trigger backup after adding command; here or in store?
+  delay(pushBackup, 100); // persist new contact
   router.back();
 };
 
