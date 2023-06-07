@@ -21,6 +21,31 @@ export async function createKeyPair() {
   return crypt.generateKey(algo, true, usage);
 }
 
+export async function createKey(keyString: string): Promise<CryptoKey> {
+  // const encoder = new TextEncoder();
+  const encodedData = encoder.encode(keyString);
+
+  try {
+    const subtleCrypto = window.crypto.subtle;
+    const algorithm: AesKeyAlgorithm = { name: 'AES-GCM', length: 256 };
+    const extractable = true;
+    const usages: KeyUsage[] = ['encrypt', 'decrypt'];
+
+    const key = await subtleCrypto.importKey(
+      'raw',
+      encodedData,
+      algorithm,
+      extractable,
+      usages
+    );
+
+    return key;
+  } catch (error) {
+    console.error('Error creating CryptoKey:', error);
+    throw error;
+  }
+}
+
 export function pubKey(pair: CryptoKeyPair) {
   return pair.publicKey;
 }
@@ -70,6 +95,20 @@ export async function hash(string: string): Promise<string> {
   return toHex(await crypt.digest(hashAlgo, encoder.encode(string)));
 }
 
+// sync cyrb53 hashing algorithm
+export function hashQuick(str: string, seed = 0): string { 
+  let h1 = 0xdeadbeef ^ seed,
+      h2 = 0x41c6ce57 ^ seed;
+  for (let i = 0, ch; i < str.length; i++) {
+      ch = str.charCodeAt(i);
+      h1 = Math.imul(h1 ^ ch, 2654435761);
+      h2 = Math.imul(h2 ^ ch, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ h1 >>> 16, 2246822507) ^ Math.imul(h2 ^ h2 >>> 13, 3266489909);
+  h2 = Math.imul(h2 ^ h2 >>> 16, 2246822507) ^ Math.imul(h1 ^ h1 >>> 13, 3266489909);
+  return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(16);  
+}
+
 export async function address(key: CryptoKey) {
   if (key.type !== 'public') throw 'public keys only';
   return hash(await serializeKey(key));
@@ -79,7 +118,17 @@ export async function encrypt(data: string, key: CryptoKey) {
   return crypt.encrypt(algo, key, encoder.encode(data))
 }
 
+export async function encryptWithSecret(data: string, secret: string) {
+  const key = await createKey(secret);
+  return crypt.encrypt(algo, key, encoder.encode(data))
+}
+
 export async function decrypt(data: BufferSource, key: CryptoKey) {
+  return decoder.decode(await crypt.decrypt(algo, key, data));
+}
+
+export async function decryptWithSecret(data: BufferSource, secret: string) {
+  const key = await createKey(secret);
   return decoder.decode(await crypt.decrypt(algo, key, data));
 }
 

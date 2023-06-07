@@ -1,10 +1,11 @@
 import firebasePlugin from "@/repositories/firebase";
 import { useMeStore, useContactsStore } from "@/store";
 import { Contact, ContactProfile } from "@/types/contacts";
-import { Repositories, Repository, RepositoryPlugin } from "@/types/repositories";
+import { Repositories, Repository, RepositoryPlugin, SecureRepositoryPlugin, isSecure } from "@/types/repositories";
 import { pull } from "lodash";
 import { nextTick, ref, watchEffect } from "vue";
-import { decrypt, encrypt, fromBase64, hash, importPrivateKey, importPublicKey, toBase64 } from "./crypto";
+import { decrypt, decryptWithSecret, encrypt, encryptWithSecret, fromBase64, hash, importPrivateKey, importPublicKey, toBase64 } from "./crypto";
+import { useBackupStore } from "@/store/backup";
 
 const pluginFactory = new Map<Repositories, () => RepositoryPlugin>([
   [Repositories.firebase, firebasePlugin]
@@ -12,6 +13,10 @@ const pluginFactory = new Map<Repositories, () => RepositoryPlugin>([
 const plugins = new Map<Repositories, RepositoryPlugin>();
 const meStore = useMeStore();
 const contactsStore = useContactsStore();
+
+
+
+// Updates ////////////////////////////////////////////////////////////////////
 
 export async function pushUpdate(progress = ref(0)) {
   const me = meStore.contact!;
@@ -94,6 +99,45 @@ export async function pullUpdates(progress = ref(0), updatedIds = ref<Array<stri
 
 
 
+// Backups ////////////////////////////////////////////////////////////////////
+
+const backupStore = useBackupStore();
+type Backup = {
+  me: typeof meStore.$state;
+  contacts: typeof contactsStore.contacts;
+  version: number;
+};
+
+export async function pushBackup(masterPassword: string) {
+  // Get all data (meStore, contacts), encrypt with master password and push backup to secure repositories
+  backupStore.version++;
+  const me = meStore.$state;
+  const backup: Backup = { me, contacts: contactsStore.contacts, version: backupStore.version };
+  const data = toBase64(await encryptWithSecret(JSON.stringify(backup), masterPassword));
+  return await Promise.all(loadSecurePlugins().map(secure => {
+    secure.pushBackup(data);
+  }));
+}
+
+export async function pullBackup(masterPassword: string) {
+  let latest: Backup | undefined;
+  await Promise.all(loadSecurePlugins().map(async secure => {
+    const data = fromBase64(await secure.pullBackup());
+    const backup = JSON.parse(await decryptWithSecret(data, masterPassword)) as Backup;
+    if (!latest || backupStore.version < backup.version) {
+      latest = backup;
+    }
+  }));
+  if (latest) {
+    useMeStore().$patch(latest.me);
+    contactsStore.contacts = latest.contacts;
+  }
+}
+
+
+
+// Repositories ///////////////////////////////////////////////////////////////
+
 export async function enableRepository(repository: Repository) {
   const plugin = loadPlugin(repository.id);
   repository.configuration = plugin.configure();
@@ -109,15 +153,21 @@ export async function disableRepository(repository: Repository) {
   pull(meStore.contact!.profile.sources, source);
 }
 
+
+
+// Utilities //////////////////////////////////////////////////////////////////
+
 export async function createAddress(from: Contact, to: Contact, secret: number): Promise<string> {
   return await hash([from.pub, to.pub, secret].map(x => JSON.stringify(x)).join());
 }
 
-
+function loadSecurePlugins(): SecureRepositoryPlugin[] {
+  return loadAllPlugins().filter(repository => isSecure(repository)) as SecureRepositoryPlugin[];
+}
 
 function loadAllPlugins(): RepositoryPlugin[] {
   return meStore.repositories.map(repository => loadPlugin(repository.id));
-}
+}  
 
 function loadPlugin(id: Repositories): RepositoryPlugin {
   const plugin = plugins.get(id);

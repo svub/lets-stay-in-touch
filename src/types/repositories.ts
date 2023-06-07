@@ -24,10 +24,19 @@ export type RepositorySource = {
 }
 
 export interface RepositoryPlugin extends Repository {
-  configure: () => string; // do config to start using this repo
-  pushUpdate: (address: string, data: string) => void;
-  pullUpdate: (address: string) => Promise<string>;
-  pullUpdates: (addresses: Array<string>, progress?: Ref<number> ) => Promise<Array<RepositoryEntry>>;
+  configure(): string; // do config to start using this repo
+  pushUpdate(address: string, data: string): void;
+  pullUpdate(address: string): Promise<string>;
+  pullUpdates(addresses: Array<string>, progress?: Ref<number> ): Promise<Array<RepositoryEntry>>;
   source: () => RepositorySource; // for others to pull my updates
-  isSecure: () => boolean; // safe to store pk here?
+}
+// safe to store pk here
+export interface SecureRepositoryPlugin extends RepositoryPlugin {
+  pullBackup(): Promise<string>;
+  pushBackup(data: string): void;
+}
+
+export function isSecure(plugin: RepositoryPlugin): plugin is SecureRepositoryPlugin {
+  const secure = plugin as SecureRepositoryPlugin;
+  return typeof secure.pullBackup === 'function' && typeof secure.pushBackup === 'function';
 }
