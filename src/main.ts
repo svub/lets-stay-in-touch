@@ -33,6 +33,7 @@ localForage.config({
 });
 
 // TODO: consider extracting this into generic module, needed this functionality in two projects already.
+// consider using `pinia.state.value = {}` as described here https://pinia.vuejs.org/core-concepts/state.html#replacing-the-state
 async function persistencePlugin({ store }: { store: Store }) {
   const key = store.$id + '-state';
   const persist = () => {

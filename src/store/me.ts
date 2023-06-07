@@ -40,7 +40,7 @@ export const useMeStore = defineStore('me', () => {
 
   // start creating a new profile while waiting for local storage to load back-up
   createMe().then(created => { 
-    if (!contact.value) { // back loaded?
+    if (!contact.value) { // First time using the app? Initialize...
       ({ pk: pk.value, contact: contact.value } = created);
     }
   });
