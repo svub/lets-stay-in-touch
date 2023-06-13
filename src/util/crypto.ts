@@ -1,11 +1,22 @@
 const hashAlgo = 'SHA-256';
 
-const algo = {
+const asymmetricAlgorithm = {
   name: 'RSA-OAEP',
   modulusLength: 2048,
   publicExponent: new Uint8Array([1, 0, 1]),
   hash: hashAlgo,
 };
+
+const symmetricAlgorithm: AesKeyAlgorithm = { 
+  name: 'AES-GCM', 
+  length: 256,
+};
+
+// const symetricAlgorithm: AesCtrParams = {
+//   name: 'AES-CTR',
+//   counter: new Uint8Array(16),
+//   length: 128,
+// };
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
@@ -18,28 +29,17 @@ export function randomString(length = 10) {
 }
 
 export async function createKeyPair() {
-  return crypt.generateKey(algo, true, usage);
+  return crypt.generateKey(asymmetricAlgorithm, true, usage);
 }
 
 export async function createKey(keyString: string): Promise<CryptoKey> {
-  // const encoder = new TextEncoder();
-  const encodedData = encoder.encode(keyString);
+  // making sure the key string is always 32 bytes long, required for 265bit AES encryption
+  const hashed = await hash(keyString);
+  const encodedData = new Uint8Array(hashed).subarray(0, 32); 
+  console.log(`createKey: using data with ${encodedData.length*8}bits`);
 
   try {
-    const subtleCrypto = window.crypto.subtle;
-    const algorithm: AesKeyAlgorithm = { name: 'AES-GCM', length: 256 };
-    const extractable = true;
-    const usages: KeyUsage[] = ['encrypt', 'decrypt'];
-
-    const key = await subtleCrypto.importKey(
-      'raw',
-      encodedData,
-      algorithm,
-      extractable,
-      usages
-    );
-
-    return key;
+    return crypt.importKey('raw', encodedData, symmetricAlgorithm, true, ['encrypt', 'decrypt']);
   } catch (error) {
     console.error('Error creating CryptoKey:', error);
     throw error;
@@ -91,8 +91,16 @@ export function stringFromHex(data: string) {
   return decoder.decode(fromHex(data));
 }
 
-export async function hash(string: string): Promise<string> {
-  return toHex(await crypt.digest(hashAlgo, encoder.encode(string)));
+export function encode(data: {}) {
+  return encoder.encode(JSON.stringify(data));
+}
+
+export function decode(data: ArrayBuffer) {
+  return JSON.parse(decoder.decode(data));
+}
+
+export async function hash(data: ArrayBuffer): Promise<ArrayBuffer> {
+  return crypt.digest(hashAlgo, data);
 }
 
 // sync cyrb53 hashing algorithm
@@ -114,34 +122,88 @@ export async function address(key: CryptoKey) {
   return hash(await serializeKey(key));
 }
 
-export async function encrypt(data: string, key: CryptoKey) {
-  return crypt.encrypt(algo, key, encoder.encode(data))
+export async function encrypt(data: ArrayBuffer, key: CryptoKey) {
+  // const encoded = encoder.encode(data); -- let the user decide
+  // From testing with tests/unit/crypto.spec.ts, data.length <=180 works, leaving some space
+  if (data.byteLength < 100) {
+    // the result is always 265 bytes long
+    return crypt.encrypt(asymmetricAlgorithm, key, data);
+  } else { // hybrid crypto
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const algorithm = { ...symmetricAlgorithm, iv };
+
+    const symmetricKey = await crypt.generateKey(algorithm, true, ['encrypt', 'decrypt']);
+    const encodedSymKey = encoder.encode(await serializeKey(symmetricKey));
+    const encryptedSymKey = await crypt.encrypt(asymmetricAlgorithm, key, encodedSymKey);
+    const encryptedData = await crypt.encrypt(algorithm, symmetricKey, data);
+
+    console.log('part sizes encrypted-sym-key, iv, encrypted-data', encryptedSymKey.byteLength, iv.byteLength, encryptedData.byteLength)
+    if (encryptedSymKey.byteLength != 256) throw new Error("encrypt: mismatch of encrypted sym key size.");
+    if (iv.byteLength != 12) throw new Error("encrypt: IV size mismatch.");
+
+    const container = new Uint8Array(encryptedData.byteLength + 12 + 256);
+    container.set(new Uint8Array(encryptedSymKey), 0);
+    container.set(iv, 256);
+    container.set(new Uint8Array(encryptedData), 256 + 12);
+    return container.buffer;
+  }
 }
 
-export async function encryptWithSecret(data: string, secret: string) {
+export async function decrypt(data: ArrayBuffer, key: CryptoKey) {
+  if (data.byteLength <= 256) {
+    return await crypt.decrypt(asymmetricAlgorithm, key, data);
+  } else { // hybrid 
+    const container = new Uint8Array(data);
+    const encryptedSymKey = container.slice(0, 256);
+    const iv = container.slice(256, 256 + 12);
+    const encryptedData = container.slice(256 + 12);
+    const algorithm = { ...symmetricAlgorithm, iv };
+
+    const decryptedSymKey = await crypt.decrypt(asymmetricAlgorithm, key, encryptedSymKey);
+    console.log('decryptedSymKey', decryptedSymKey);
+    const decodedSymKey = decoder.decode(decryptedSymKey);
+    console.log('decodedSymKey', decryptedSymKey);
+    const symmetricKey = await crypt.importKey('jwk', JSON.parse(decodedSymKey), algorithm, true, ['encrypt', 'decrypt']);
+
+    return crypt.decrypt(algorithm, symmetricKey, encryptedData);
+  }
+}
+
+export async function encryptWithSecret(data: ArrayBuffer, secret: string) {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const algorithm = { ...symmetricAlgorithm, iv };
   const key = await createKey(secret);
-  return crypt.encrypt(algo, key, encoder.encode(data))
+  const encrypted = await crypt.encrypt(algorithm, key, data);
+
+  if (iv.byteLength != 12) throw new Error("encrypt: IV size mismatch.");
+
+  const container = new Uint8Array(encrypted.byteLength + 12);
+  container.set(iv, 0);
+  container.set(new Uint8Array(encrypted), 12);
+  return container.buffer;
 }
 
-export async function decrypt(data: BufferSource, key: CryptoKey) {
-  return decoder.decode(await crypt.decrypt(algo, key, data));
-}
+export async function decryptWithSecret(data: ArrayBuffer, secret: string) {
 
-export async function decryptWithSecret(data: BufferSource, secret: string) {
+  const container = new Uint8Array(data);
+  const iv = container.slice(0, 12);
+  const encryptedData = container.slice(12);
+  const algorithm = { ...symmetricAlgorithm, iv };
+
   const key = await createKey(secret);
-  return decoder.decode(await crypt.decrypt(algo, key, data));
+  return crypt.decrypt(algorithm, key, encryptedData);
 }
 
 export async function exportKey(key: CryptoKey) {
-  return await crypt.exportKey('jwk', key);
+  return crypt.exportKey('jwk', key);
 }
 
 export async function importPublicKey(key: JsonWebKey) {
-  return await crypt.importKey('jwk', key, algo, true, ['encrypt']);
+  return crypt.importKey('jwk', key, asymmetricAlgorithm, true, ['encrypt']);
 }
 
 export async function importPrivateKey(key: JsonWebKey) {
-  return await crypt.importKey('jwk', key, algo, true, ['decrypt']);
+  return crypt.importKey('jwk', key, asymmetricAlgorithm, true, ['decrypt']);
 }
 
 export async function serializeKey(key: CryptoKey) {
