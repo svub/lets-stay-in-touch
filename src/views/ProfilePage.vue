@@ -17,6 +17,9 @@
       </ion-header>
 
       <template v-if="contact">
+        <ion-chip v-if="!hasSecureRepository()" color="danger">
+          You didn't yet setup a safe place to back-up your contacts.
+          Better scroll to the bottom and do it now. 😘</ion-chip>
         <ContactItem :data="contact"></ContactItem>
         <h3> Profile </h3>
         <ion-list>
@@ -90,18 +93,13 @@
         </ion-list>
         <h3> Repositories </h3>
         <ion-list>
-          <ion-item v-if="repositories.length < 1">No repositories configure yet. Add one below.</ion-item>
+          <ion-item v-if="repositories.length < 1">No repositories configured yet. Add one below.</ion-item>
           <ion-item v-for="(repository, index) of repositories" :key="index">
             <ion-label>{{ repositoryNames[repository.id] }}</ion-label>
-            <ion-textarea v-model.trim="repository.configuration"></ion-textarea>
-            <ion-button @click="enableRepository(repository)">Reconfigure</ion-button>
+            <ion-textarea readonly :value="JSON.stringify(repository.configuration)"></ion-textarea>
+            <ion-button @click="disableRepository(repository)">Disable</ion-button>
           </ion-item>
-          <p>Add a repository:</p>
-          <ion-select v-model.number="newRepositoryType" :selected-text="repositoryNames[newRepositoryType]">
-            <ion-select-option v-for="(name, key) of repositoryNames" :value="key" :key="key">{{ name
-            }}</ion-select-option>
-          </ion-select>
-          <ion-button @click="repositories.push({ id: newRepositoryType, configuration: '' })">+</ion-button>
+          <ion-button @click="addRepository">Add a repository</ion-button>
         </ion-list>
         <p>
           <ion-button @click="pushUpdate()">Update</ion-button>
@@ -116,20 +114,46 @@
 
 <script lang="ts" setup>
 import { useMeStore } from '@/store';
-import { IonButtons, IonContent, IonHeader, IonList, IonItem, IonLabel, IonMenuButton, IonPage, IonTitle, IonToolbar, IonInput, IonSelect, IonSelectOption, IonButton, IonTextarea } from '@ionic/vue';
+import { IonButtons, IonContent, IonHeader, IonList, IonChip, IonItem, IonLabel, IonMenuButton, IonPage, IonTitle, IonToolbar, IonInput, IonSelect, IonSelectOption, IonButton, IonTextarea, ActionSheetButton, actionSheetController } from '@ionic/vue';
 import { locationPrecisionLabels } from '@/types/contacts';
-import { Repositories, repositoryNames } from '@/types/repositories';
+import { isSecure, repositoryNames } from '@/types/repositories';
 import ContactItem from '@/components/ContactItem.vue';
 import { storeToRefs } from 'pinia';
 import { countryCodes } from '@/util/countryCodes';
 import { locationMetadata } from '@/util/osm';
-import { pushUpdate, enableRepository } from '@/util/storage';
-import { ref } from 'vue';
+import { pushUpdate, enableRepository, disableRepository, loadPlugin } from '@/util/storage';
 
 const { contact, repositories } = storeToRefs(useMeStore());
 console.log('Profile page: me contact', JSON.stringify(contact.value, undefined, ' '));
-const oldMe = JSON.stringify(contact.value);
-const newRepositoryType = ref(Repositories.test);
+// const oldMe = JSON.stringify(contact.value);
+// const newRepositoryType = ref(Repositories.test);
+
+async function addRepository() {
+  const actionSheetButtons: ActionSheetButton[] = await Promise.all(Object.entries(repositoryNames).map(async ([key, name]) => {
+    const id = parseInt(key);
+    const plugin = await loadPlugin(id)
+    return {
+      text: isSecure(plugin) ? `${name}*` : name,
+      handler: () => void enableRepository(id),
+    }
+  }));
+
+  actionSheetButtons.push({
+    text: 'Cancel',
+    role: 'cancel',
+  });
+
+  const actionSheet = await actionSheetController.create({
+    header: 'Add repository',
+    subHeader: 'Repositories with an * can do back-ups of your data.',
+    buttons: actionSheetButtons,
+  });
+  await actionSheet.present();
+}
+
+function hasSecureRepository() {
+  return !!repositories.value.map(repository => loadPlugin(repository.id)).find(async plugin => isSecure(await plugin));
+}
 
 function geoLocate() {
   navigator.geolocation.getCurrentPosition(async (position) => {
