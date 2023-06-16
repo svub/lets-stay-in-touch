@@ -6,6 +6,9 @@
           <ion-menu-button color="primary"></ion-menu-button>
         </ion-buttons>
         <ion-title>Contact details</ion-title>
+        <ion-buttons slot="end">
+          <ion-button title="Refresh data" color="primary" @click="refresh">💫</ion-button>
+        </ion-buttons>
       </ion-toolbar>
     </ion-header>
 
@@ -71,15 +74,22 @@
 
 <script lang="ts" setup>
 import { useContactsStore } from '@/store';
-import { IonButtons, IonContent, IonHeader, IonText, IonMenuButton, IonPage, IonTitle, IonToolbar, IonList, IonItem, IonLabel } from '@ionic/vue';
+import { IonButtons, IonContent, IonHeader, IonButton, IonText, IonMenuButton, IonPage, IonTitle, IonToolbar, IonList, IonItem, IonLabel } from '@ionic/vue';
 import { useRoute } from 'vue-router';
-import { locationPrecisionLabels } from '@/types/contacts';
+import { Contact, locationPrecisionLabels } from '@/types/contacts';
 import ContactItem from '@/components/ContactItem.vue';
+import { Update, pullUpdate } from '@/util/storage';
+import { Ref, ref } from 'vue';
 
 const route = useRoute();
 const id = route.params.id;
-const contact = useContactsStore().get(id as string);
+const contact = useContactsStore().get(id as string)!;
+const update: Ref<Update<Contact> | undefined> = ref();
 
+async function refresh() {
+  update.value = await pullUpdate(contact);
+  console.log('ContactPage.refresh: done', update.value);
+}
 </script>
 
 <style scoped></style>
