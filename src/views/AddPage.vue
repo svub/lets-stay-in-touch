@@ -33,7 +33,7 @@
           <p v-if="parsingError" class="error">{{ parsingError }}</p>
           <p v-if="contact">
             <ContactItem :data="contact"></ContactItem>
-            <ion-button @click="go(contact!)">
+            <ion-button @click="importContact(contact!)">
               Import this contact
             </ion-button>
           </p>
@@ -65,7 +65,7 @@
             {{ dummyJson }}
           </ion-text>
           <ContactItem :data="dummy"></ContactItem>
-          <ion-button @click="go(dummy!)">
+          <ion-button @click="importContact(dummy!)">
             Import this dummy contact
           </ion-button>
         </ion-card-content>
@@ -83,7 +83,7 @@ import useClipboard from 'vue-clipboard3'
 import { dummyContact } from '@/util/dummies';
 import { Contact } from '@/types/contacts';
 import ContactItem from '@/components/ContactItem.vue';
-import { stringFromBase64, stringToBase64 } from '@/util/crypto';
+import { encode, stringFromBase64, toBase64 } from '@/util/crypto';
 import { toast, toastWarning } from '@/util/toast';
 import { pushBackup } from '@/util/storage';
 import { delay } from 'lodash';
@@ -95,12 +95,14 @@ const dummyJson = ref('');
 const contact = ref<Contact>();
 const dummy = ref<Contact>();
 const parsingError = ref<string>("");
-const myData = stringToBase64(JSON.stringify(meStore.contact));
+// IDEA could use compress/inflate -- less convenient for debugging -> later
+const myData = toBase64(encode(meStore.contact));
 
 function tryParsing(data?: string) {
   console.log(data);
   try {
     parsingError.value = '';
+    // FIXME update and exchange secret -- or remove secret if it's actually not needed.
     contact.value = data ? JSON.parse(stringFromBase64(data)) : undefined;
   } catch (e) {
     parsingError.value = '' + e;
@@ -118,11 +120,14 @@ async function copyInvitation() {
   }
 }
 
-const go = (contact: Contact) => {
-  contactStore.add(contact);
+function importContact(contact: Contact) {
+  if (contactStore.get(contact.id) && confirm("This contact already exists, do you want to update it?")) {
+    contactStore.replace(contact);
+  } else {
+    contactStore.add(contact);
+  }
   delay(pushBackup, 100); // persist new contact
-  router.back();
-};
+}
 
 dummyContact().then((c) => {
   dummy.value = c;
