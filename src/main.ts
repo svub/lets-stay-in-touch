@@ -25,6 +25,9 @@ import '@ionic/vue/css/display.css';
 
 /* Theme variables */
 import './theme/variables.css';
+import { BSON } from 'bson';
+import { compress, inflate } from './util/compress';
+import { fromBase64, toBase64 } from './util/crypto';
 
 localForage.config({
   name        : 'lsit',
@@ -35,33 +38,58 @@ localForage.config({
 // TODO: consider extracting this into generic module, needed this functionality in two projects already.
 // consider using `pinia.state.value = {}` as described here https://pinia.vuejs.org/core-concepts/state.html#replacing-the-state
 async function persistencePlugin({ store }: { store: Store }) {
+  if (!Object.hasOwn(window, 'resetPiniaStores')) {
+    Object.defineProperty(window, 'resetPiniaStores', {
+      value: () => {
+        for (const store of (window as any).resetPiniaStoreRefs) {
+          store.$state = {};
+        }
+        localStorage.clear();
+        localForage.clear();
+      }
+    });
+  }
+  if (!Object.hasOwn(window, 'resetPiniaStoreRefs')) {
+    Object.defineProperty(window, 'resetPiniaStoreRefs', { value: [store] });
+  } else {
+    (window as any).resetPiniaStoreRefs.push(store);
+  }
+
   const key = store.$id + '-state';
   const persist = () => {
-    // plain objects should work but caused problems with indexedDB, to be tested, but serialized works always.
-    const data = JSON.stringify(store.$state);
-    localStorage.setItem(key, data);
-    localForage.setItem(key, data);
+    // BSON allows for UInt8Arrays to be restored properly. Compression saves 30%+
+    const data = BSON.serialize(store.$state);
+    const compressed = compress(data);
+    console.warn(`persiting ${store.$id}: raw, compressed`, data.byteLength, compressed.byteLength, Math.floor(compressed.byteLength / data.byteLength * 100)+'%' );
+
+    localStorage.setItem(key, toBase64(compressed));
+    localForage.setItem(key, compressed);
   };
+
+  function patch(data: Uint8Array) {
+    store.$patch(BSON.deserialize(inflate(data)))
+  }
   
-  let quick = localStorage.getItem(key)
+  const quickRaw = localStorage.getItem(key);
+  let quick = quickRaw ? new Uint8Array(fromBase64(quickRaw)) : undefined;
   if (quick) {
     try {
-      store.$patch(JSON.parse(quick))
+      patch(quick);
     } catch(e) {
-      quick = null; // trigger patching via localForage
+      quick = undefined; // trigger patching via localForage
     }
   }
   
-  const stored = await localForage.getItem(key) as string;
+  const stored = await localForage.getItem(key) as Uint8Array;
   if (stored && quick != stored) {
-    store.$patch(JSON.parse(stored))
-    localStorage.setItem(key, stored);
+    patch(stored);
+    localStorage.setItem(key, toBase64(stored));
   } 
   if (quick && !stored) {
-    persist();
+    await persist();
   }
 
-  store.$subscribe(debounce(persist, 50));
+  store.$subscribe(debounce(persist, 1000));
 }
 
 const pinia = createPinia();

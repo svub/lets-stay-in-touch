@@ -18,7 +18,9 @@
     "@capacitor/status-bar": "4.1.1",
     "@ionic/vue": "^6.0.0",
     "@ionic/vue-router": "^6.0.0",
+    "bson": "^5.3.0",
     "core-js": "^3.6.5",
+    "fflate": "^0.8.0",
     "firebase": "^9.17.2",
     "ionicons": "^6.0.3",
     "localforage": "^1.10.0",
@@ -27,7 +29,9 @@
     "pinia": "^2.0.28",
     "vue": "^3.2.21",
     "vue-clipboard3": "^2.0.0",
-    "vue-router": "^4.0.12"
+    "vue-router": "^4.0.12",
+    "w3name": "^1.0.8",
+    "web3.storage": "^4.5.4"
   },
   "devDependencies": {
     "@capacitor/cli": "4.6.1",
