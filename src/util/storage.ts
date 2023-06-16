@@ -1,13 +1,14 @@
 import firebasePlugin from "@/repositories/firebase";
 import { useMeStore, useContactsStore } from "@/store";
 import { Contact, ContactProfile } from "@/types/contacts";
-import { Repositories, Repository, RepositoryPlugin, SecureRepositoryPlugin, isSecure, repositoryNames } from "@/types/repositories";
+import { Repositories, Repository, RepositoryPlugin, SecureRepositoryPlugin, isSecure, repositoryNames, DataItem } from "@/types/repositories";
 import { cloneDeep, pull } from "lodash";
 import { nextTick, ref } from "vue";
 import { decode, decrypt, decryptWithSecret, encode, encrypt, encryptWithSecret, hash, importPrivateKey, importPublicKey, toHex } from "./crypto";
 import { useBackupStore } from "@/store/backup";
 import web3Plugin from "@/repositories/web3";
 import testPlugin from "@/repositories/test";
+import { compress, inflate } from "./compress";
 
 const pluginFactory = new Map<Repositories, () => Promise<RepositoryPlugin<any, any>>>([
   [Repositories.test, testPlugin],
@@ -22,6 +23,11 @@ const contactsStore = useContactsStore();
 
 // Updates ////////////////////////////////////////////////////////////////////
 
+/**
+ * For each contact, encrypt and push my profile data to all configured remote storage places.
+ * @param progress a 0..1 value representing the progress of pushing the update
+ * @returns 
+ */
 export async function pushUpdate(progress = ref(0)) {
   const me = meStore.contact!;
   const meHash = toHex(await hash(encode(me?.profile)));
@@ -31,25 +37,49 @@ export async function pushUpdate(progress = ref(0)) {
   }
 
   // TODO v2: keep in mind which contact is to see what information.
-  // for each contact, encrypt and push data to all configured remote storage places.
-  const contacts = [...contactsStore.contacts.values()]; // is this needed? Or could the store property be used directly in the for statement below?
+  const contacts = [...contactsStore.contacts.values()]; // TODO is this needed? Or could the store property be used directly in the for statement below? -- if it works in step 2, the answer is no.
+  if (contacts.length < 1) {
+    return console.warn('pushUpdate: nothing to push, no contacts.');
+  }
+
   me.profile.version++;
-  const data = encode(me.profile);
+  const encoded = encode(me.profile);
+  const data = await compress(encoded);
+  console.log(`storage.push: data compressed from ${encoded.byteLength} to ${data.byteLength}`);
+  // Despite being uglier, I need to collect all updates first and then push them to each plugin at once
+  // Otherwise, a separate key and name would be required for each contact in the web3 plugin :(
+  // Upside: the heavy lifting is done here once, and the plugins can then optimize the transport (bulk push)
+
+  // step 1: preparing all updates for all contacts
+  const updates = new Map<Repository<any>, DataItem[]>(meStore.repositories.map(repo => [repo, []]));
   for (const [index, contact] of contacts.entries()) {
-    progress.value = (index + 1) / contacts.length;
+    progress.value = (index + 1) / contacts.length * .5; // upto 50% progress for step 1
     await nextTick();
 
     const pub = await importPublicKey(contact.pub);
     const encrypted = await encrypt(data, pub);
     const address = await createAddress(me!, contact, contact.secret); 
-    
+
     for (const repository of meStore.repositories) {
-      const plugin = await loadPlugin(repository.id);
-      try {
-        plugin.pushUpdate(repository, address, encrypted);
-      } catch(e) {
-        console.error(`Storage: ${repositoryNames[repository.id]} failed to push update`, e);
-      }
+      updates.get(repository)!.push({ address, data: encrypted }); 
+    }
+  }
+
+  console.log(updates);
+  console.log(JSON.stringify(updates));
+
+  // step 2: push updates online
+  for (const [index, repository] of meStore.repositories.entries()) {
+    progress.value = .5 + (index + 1) / meStore.repositories.length * .5; // 50 to 100% for step 2
+    await nextTick();
+
+    const plugin = await loadPlugin(repository.id);
+    const list = updates.get(repository)!;
+    console.log(`storage.push: updates for ${repositoryNames[repository.id]}`, list);
+    try {
+      await plugin.pushUpdates(repository, list);
+    } catch(e) {
+      console.error(`Storage: ${repositoryNames[repository.id]} failed to push update`, e);
     }
   }
   return meStore.previousHash = meHash;
@@ -112,23 +142,27 @@ export async function pullUpdate(contact: Contact, key?: CryptoKey): Promise<Upd
   const address = await createAddress(contact, me!, contact.secret);
   let latestUpdate = contact.profile;
 
-  await Promise.all(contact.profile.sources.map(async source => {
+  await Promise.all(contact.profile.sources.map(async (source, i, a) => {
     const plugin = await loadPlugin(source.repository);
     
     const data = await plugin.pullUpdate(source, address);
     if (!data || data.byteLength < 1) return;
 
     const decrypted = await decrypt(data, key!);
-    const update = decode(decrypted) as ContactProfile;
+    const update = decode(await inflate(decrypted)) as ContactProfile;
+    console.log(`storage.push: found update via ${repositoryNames[source.repository]}`, update);
 
     if (update.version > latestUpdate.version) {
       latestUpdate = update;
     }
+
+    return update;
   }));
   
   if (latestUpdate !== contact.profile) {
+    console.log('storage.push: applying update', latestUpdate);
     const old = cloneDeep(contact);
-    contact.profile = latestUpdate; // TODO does this trigger the store to update or does it require "set(...)"?
+    contact.profile = latestUpdate;
     return { old, new: contact };
   }
 }
@@ -148,6 +182,8 @@ export async function pullUpdates(progress = ref(0), updated = ref<Array<Update<
   }
 }
 
+
+
 // Backups ////////////////////////////////////////////////////////////////////
 
 const backupStore = useBackupStore();
@@ -162,7 +198,7 @@ export async function pushBackup(masterPassword: string) {
   backupStore.version++;
   const me = meStore.$state;
   const backup: Backup = { me, contacts: contactsStore.contacts, version: backupStore.version };
-  const encrypted = await encryptWithSecret(encode(backup), masterPassword);
+  const encrypted = await encryptWithSecret(await compress(encode(backup)), masterPassword);
   const plugins = await loadSecureMyPlugins();
 
   return await Promise.all(plugins.map(secure => {
@@ -176,7 +212,7 @@ export async function pullBackup(masterPassword: string) {
 
   await Promise.all(plugins.map(async secure => {
     const encrypted = await secure.pullBackup();
-    const backup = decode(await decryptWithSecret(encrypted, masterPassword)) as Backup;
+    const backup = decode(await inflate(await decryptWithSecret(encrypted, masterPassword))) as Backup;
     if (!latest || backupStore.version < backup.version) {
       latest = backup;
     }
@@ -191,16 +227,20 @@ export async function pullBackup(masterPassword: string) {
 
 // Repositories ///////////////////////////////////////////////////////////////
 
+async function refreshSources() {
+  meStore.contact!.profile.sources = await Promise.all(meStore.repositories.map(async repository => {
+    const plugin = await loadPlugin(repository.id);
+    return plugin.source(repository);
+  }));
+}
+
 export async function enableRepository(id: Repositories) {
   const plugin = await loadPlugin(id);
   const repository = await plugin.createRepository();
 
   meStore.repositories.push(repository);
   // meStore.contact!.profile.sources.push(plugin.source(repository));
-  meStore.contact!.profile.sources = await Promise.all(meStore.repositories.map(async repository => {
-    const plugin = await loadPlugin(repository.id);
-    return plugin.source(repository);
-  }));
+  await refreshSources();
 
   return repository;
 }
@@ -208,7 +248,9 @@ export async function enableRepository(id: Repositories) {
 export async function disableRepository(repository: Repository<any>) {
   const plugin = await loadPlugin(repository.id);
   pull(meStore.repositories, repository);
+  // could be done with _.remove, but would require each repo to have a unique ID
   // pull(meStore.contact!.profile.sources, plugin.source(repository));
+  await refreshSources();
 }
 
 

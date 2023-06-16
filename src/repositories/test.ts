@@ -1,39 +1,40 @@
 import { useContactsStore, useMeStore } from "@/store";
 import { Contact } from "@/types/contacts";
-import { Repositories, RepositoryEntry, RepositoryPlugin } from "@/types/repositories";
+import { Repositories, RepositoryPlugin } from "@/types/repositories";
+import { encode } from "@/util/crypto";
 import { createAddress } from "@/util/storage";
-import { cloneDeep } from "lodash";
-import { ref } from "vue";
 
 const textEncoder = new TextEncoder();
 
-export default function testPlugin(): RepositoryPlugin {
+export default async function testPlugin(): Promise<RepositoryPlugin<any, string>> {
   return {
-    id: Repositories.test,
-    configuration: '',
-    configure() {
-      return '';
+    async createRepository() {
+      return {
+        id: Repositories.test,
+        configuration: '',
+      };
     },
-    pullUpdate(address) {
-      const profile = cloneDeep(contacts.get(address)!.profile);
-      profile.version++;
-      return new Promise(() => {
-        return JSON.stringify(profile);
+    async pullUpdate(repository, address) {
+      const profile = JSON.parse(JSON.stringify(contacts.get(address)!.profile));
+      if (Math.random() > .2) profile.version++;
+      return new Promise((resolve) => {
+        console.log('test.push: profile', profile);
+        resolve(encode(profile));
+        // resolve(undefined);
       });
     },
-    pullUpdates(addresses, progress = ref(1)) {
-      progress.value = 1;
-      return Promise.all(addresses.map(async address => {
-        return {
-          address, data: await this.pullUpdate(address)
-        } as RepositoryEntry;
-      }));
-    },
-    pushUpdate(address, data) {
+    // pullUpdates(addresses, progress = ref(1)) {
+    //   progress.value = 1;
+    //   return Promise.all(addresses.map(async address => {
+    //     return {
+    //       address, data: await this.pullUpdate(address)
+    //     } as RepositoryEntry;
+    //   }));
+    // },
+    async pushUpdates() {
       // do nothing
     },
-    isSecure: () => true,
-    source() { 
+    async source() { 
       return {
         repository: Repositories.test,
         configuration: '',
