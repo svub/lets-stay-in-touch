@@ -34,7 +34,7 @@ export async function createKeyPair() {
 
 export async function createKey(keyString: string): Promise<CryptoKey> {
   // making sure the key string is always 32 bytes long, required for 265bit AES encryption
-  const hashed = await hash(keyString);
+  const hashed = await hash(encode(keyString));
   const encodedData = new Uint8Array(hashed).subarray(0, 32); 
   console.log(`createKey: using data with ${encodedData.length*8}bits`);
 
@@ -69,7 +69,7 @@ export function stringToBase64(string: string) {
   return toBase64(encoder.encode(string));
 }
 
-export function fromBase64(string: string) {
+export function fromBase64(string: string): ArrayBuffer {
   const binaryString = atob(string);
   const length: number = binaryString.length;
   const uint8ArrayDecoded: Uint8Array = new Uint8Array(length);
@@ -91,7 +91,7 @@ export function stringFromHex(data: string) {
   return decoder.decode(fromHex(data));
 }
 
-export function encode(data: {}) {
+export function encode(data: any) {
   return encoder.encode(JSON.stringify(data));
 }
 
@@ -119,7 +119,7 @@ export function hashQuick(str: string, seed = 0): string {
 
 export async function address(key: CryptoKey) {
   if (key.type !== 'public') throw 'public keys only';
-  return hash(await serializeKey(key));
+  return hash(encode(await exportKey(key)));
 }
 
 export async function encrypt(data: ArrayBuffer, key: CryptoKey) {
@@ -133,7 +133,7 @@ export async function encrypt(data: ArrayBuffer, key: CryptoKey) {
     const algorithm = { ...symmetricAlgorithm, iv };
 
     const symmetricKey = await crypt.generateKey(algorithm, true, ['encrypt', 'decrypt']);
-    const encodedSymKey = encoder.encode(await serializeKey(symmetricKey));
+    const encodedSymKey = encode(await exportKey(symmetricKey));
     const encryptedSymKey = await crypt.encrypt(asymmetricAlgorithm, key, encodedSymKey);
     const encryptedData = await crypt.encrypt(algorithm, symmetricKey, data);
 

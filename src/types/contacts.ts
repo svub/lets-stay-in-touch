@@ -27,7 +27,7 @@ export type ContactProfile = {
   location: ContactLocation;
   data: ContactDataItem[];
   urls: ContactUrlItem[];
-  sources: RepositorySource[];
+  sources: RepositorySource<any>[];
 }
 
 export type ContactDataItem = {

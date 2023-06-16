@@ -1,5 +1,5 @@
 import { Contact, ContactDataItem, ContactLocation, ContactUrlItem, LocationPrecision } from '@/types/contacts';
-import { address, createKeyPair, createSecret, exportKey } from '@/util/crypto';
+import { address, createKeyPair, createSecret, exportKey, toHex } from '@/util/crypto';
 
 const dummyLocations: ContactLocation[] = [{
   label: 'Berlin, Germany',
@@ -23,7 +23,7 @@ export function dummyName(index = Math.floor(Math.random() * dummyNames.length))
 
 export async function customDummyContact(name: string, location: ContactLocation, urls: ContactUrlItem[] = [], data: ContactDataItem[] = []): Promise<Contact> {
   const pub = (await createKeyPair()).publicKey;
-  const id = await address(pub);
+  const id = toHex(await address(pub));
   const secret = createSecret();
 
   return {
