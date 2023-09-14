@@ -8,7 +8,7 @@ import { decode, decrypt, decryptWithSecret, encode, encrypt, encryptWithSecret,
 import { useBackupStore } from "@/store/backup";
 import web3Plugin from "@/repositories/web3";
 import testPlugin from "@/repositories/test";
-import { compress, inflate } from "./compress";
+import { compress, inflate } from "./io";
 
 const pluginFactory = new Map<Repositories, () => Promise<RepositoryPlugin<any, any>>>([
   [Repositories.test, testPlugin],

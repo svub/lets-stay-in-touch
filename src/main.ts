@@ -5,7 +5,7 @@ import router from './router';
 import { IonicVue } from '@ionic/vue';
 import { createPinia, Store } from 'pinia';
 import localForage from "localforage";
-import { debounce } from "lodash";
+import { cloneDeep, debounce, isEqual } from "lodash";
 
 /* Core CSS required for Ionic components to work properly */
 import '@ionic/vue/css/core.css';
@@ -26,7 +26,7 @@ import '@ionic/vue/css/display.css';
 /* Theme variables */
 import './theme/variables.css';
 import { BSON } from 'bson';
-import { compress, inflate } from './util/compress';
+import { deserialize, serialize } from './util/io';
 import { fromBase64, toBase64 } from './util/crypto';
 
 localForage.config({
@@ -35,9 +35,12 @@ localForage.config({
   storeName   : 'pinia_backup',
 });
 
-// TODO: consider extracting this into generic module, needed this functionality in two projects already.
+
+// TODO: consider extracting this into a reusable NPM module; needed this functionality in two projects already.
 // consider using `pinia.state.value = {}` as described here https://pinia.vuejs.org/core-concepts/state.html#replacing-the-state
 async function persistencePlugin({ store }: { store: Store }) {
+  const COMPRESSED = true;
+
   if (!Object.hasOwn(window, 'resetPiniaStores')) {
     Object.defineProperty(window, 'resetPiniaStores', {
       value: () => {
@@ -46,6 +49,7 @@ async function persistencePlugin({ store }: { store: Store }) {
         }
         localStorage.clear();
         localForage.clear();
+        window.location.reload();
       }
     });
   }
@@ -56,18 +60,14 @@ async function persistencePlugin({ store }: { store: Store }) {
   }
 
   const key = store.$id + '-state';
-  const persist = () => {
-    // BSON allows for UInt8Arrays to be restored properly. Compression saves 30%+
-    const data = BSON.serialize(store.$state);
-    const compressed = compress(data);
-    console.warn(`persiting ${store.$id}: raw, compressed`, data.byteLength, compressed.byteLength, Math.floor(compressed.byteLength / data.byteLength * 100)+'%' );
-
+  function persist() {
+    const compressed = serialize(store.$state, COMPRESSED);
     localStorage.setItem(key, toBase64(compressed));
     localForage.setItem(key, compressed);
-  };
+  }
 
   function patch(data: Uint8Array) {
-    store.$patch(BSON.deserialize(inflate(data)))
+    store.$patch(deserialize(data, COMPRESSED));
   }
   
   const quickRaw = localStorage.getItem(key);
@@ -76,7 +76,7 @@ async function persistencePlugin({ store }: { store: Store }) {
     try {
       patch(quick);
     } catch(e) {
-      quick = undefined; // trigger patching via localForage
+      quick = undefined; // loading quickly failed, trigger patching via localForage
     }
   }
   
