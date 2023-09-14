@@ -102,7 +102,7 @@
           <ion-button @click="addRepository">Add a repository</ion-button>
         </ion-list>
         <p>
-          <ion-button @click="pushUpdate()">Update</ion-button>
+          <ion-button @click="pushUpdate()">Publish update</ion-button>
         </p>
       </template>
       <template v-else>

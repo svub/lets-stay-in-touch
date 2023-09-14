@@ -39,7 +39,7 @@ export default async function web3Plugin(): Promise<RepositoryPlugin<Config, Sou
     // const name = await Name.from(store.key);
     if (!repository.configuration.key) throw new Error('Web3 repository not initialized properly, "key" missing.');
     const name = await Name.from(repository.configuration.key);
-  
+    
     const revisionRaw = store.revision.get(name.toString());
     const revision = !revisionRaw
       ? await Name.v0(name, path) 
@@ -57,6 +57,7 @@ export default async function web3Plugin(): Promise<RepositoryPlugin<Config, Sou
   }
   
   async function get(source: RepositorySource<Source>, address: string) {
+    // TODO following line throws if user B pulls for updates of user A while user A just added the web3 module and never published an update so far - the name doesn't yet resolve to a revision.
     const cid = await latest(source.configuration.name);
     console.log('cid', cid);
     const res = await client.get(cid);
