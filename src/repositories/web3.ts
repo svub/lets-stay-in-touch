@@ -23,22 +23,19 @@ type Source = {
 
 export default async function web3Plugin(): Promise<RepositoryPlugin<Config, Source>> {
 
-  const pluginConfig = {
+  const client = new Web3Storage({
     token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkaWQ6ZXRocjoweDMxZTRDQWM5N0MyMzFlMDcyNzA2MEU3MTgzMjcwYWY4MThCMzYzMmUiLCJpc3MiOiJ3ZWIzLXN0b3JhZ2UiLCJpYXQiOjE2ODYzMDcxOTgzMDIsIm5hbWUiOiJsZXRzLXN0YXktaW4tdG91Y2gifQ.0C7yKu2di3Ono_r9tLGXAk7hn0GzcvOWEkZuvsJ7fy4",
-  };
-  const client = new Web3Storage(pluginConfig);
+  });
+
+  async function getName(repository: Repository<Config>) {
+    return await Name.from(repository.configuration.key);
+  }
 
   async function publish(repository: Repository<Config>, path: string) {
     const store = useWeb3RepositoryStore();
   
-    // if (!store.key) {
-    //   const name = await Name.create();
-    //   // store.id = name.toString();
-    //   store.key = name.key.bytes;
-    // }
-    // const name = await Name.from(store.key);
     if (!repository.configuration.key) throw new Error('Web3 repository not initialized properly, "key" missing.');
-    const name = await Name.from(repository.configuration.key);
+    const name = await getName(repository);
     
     const revisionRaw = store.revision.get(name.toString());
     const revision = !revisionRaw
@@ -50,15 +47,14 @@ export default async function web3Plugin(): Promise<RepositoryPlugin<Config, Sou
     await Name.publish(revision, name.key);
   }
   
-  async function latest(name: string) {
-    const nameObj = Name.parse(name);
-    const revision = await Name.resolve(nameObj);
+  async function latest(name: Name.Name) {
+    const revision = await Name.resolve(name);
     return revision.value;
   }
   
   async function get(source: RepositorySource<Source>, address: string) {
     // TODO following line throws if user B pulls for updates of user A while user A just added the web3 module and never published an update so far - the name doesn't yet resolve to a revision.
-    const cid = await latest(source.configuration.name);
+    const cid = await latest(Name.parse(source.configuration.name));
     console.log('cid', cid);
     const res = await client.get(cid);
     console.log('res', res);
@@ -70,7 +66,7 @@ export default async function web3Plugin(): Promise<RepositoryPlugin<Config, Sou
     console.log('files #', files.length, files);
     console.log('address', address);
     const file = files.find(file => file.name == address);
-    console.log(file);
+    console.log('file', file);
     if (file) return file.arrayBuffer();
   }  
   
@@ -106,18 +102,18 @@ export default async function web3Plugin(): Promise<RepositoryPlugin<Config, Sou
     // },
   
     async pushUpdates(repository, updates) {
-      // TODO delete old file - via latest()
+      const oldCid = await latest(await getName(repository));
+  
       const files = updates.map(update => new File([update.data], update.address));
       const cid = await client.put(files);
-      console.log('web3.push: cid', cid, '# updates', updates.length, 'data size', sum(files.map(file => file.size)));
+      console.log('web3.push: old CID', oldCid, 'new CID', cid, '# updates', updates.length, 'data size', sum(files.map(file => file.size)));
       publish(repository, cid);
+
+      client.delete(oldCid);
     },
 
     async source(repository) {
-      // const store = useWeb3RepositoryStore();
-      // if (!store.key) throw new Error("web3.source: key not initialized.");
-      // const name = (await Name.from(store.key)).toString();
-      const name = (await Name.from(repository.configuration.key)).toString();
+      const name = (await getName(repository)).toString();
       return {
         repository: Repositories.web3,
         configuration: { name },

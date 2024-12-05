@@ -1,0 +1,1 @@
+// server-less DB access 10m requests per month https://www.polyscale.ai/pricing/

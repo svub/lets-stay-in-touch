@@ -6,7 +6,7 @@ export type NamedRouteRecord = RouteRecordRaw & {
 }
 
 export const profileRoute: NamedRouteRecord = {
-  title: 'Profile',
+  title: 'My profile',
   path: '/profile',
   component: () => import('../views/ProfilePage.vue'),
 };

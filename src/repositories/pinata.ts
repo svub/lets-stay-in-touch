@@ -1,0 +1,125 @@
+import { Repositories, Repository, RepositoryPlugin, RepositorySource } from "@/types/repositories";
+import { Ref, ref } from "vue";
+import * as Name from 'w3name';
+import { Web3Storage } from 'web3.storage'
+import { defineStore } from "pinia";
+import { sum } from "lodash";
+
+export const usePinataRepositoryStore = defineStore('pinata-repository', () => {
+  const revision: Ref<Map<string, Uint8Array | undefined>> = ref(new Map());
+
+  return {
+    revision,
+  };
+});
+
+$ % see Pinata.cloud-- extract similarities from web3.storage into shared utils and everything into a general "distributed storage lib"
+
+type Config = {
+  key: Uint8Array;
+};
+
+type Source = {
+  name: string;
+};
+
+export default async function web3Plugin(): Promise<RepositoryPlugin<Config, Source>> {
+
+  const client = new Web3Storage({
+    token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkaWQ6ZXRocjoweDMxZTRDQWM5N0MyMzFlMDcyNzA2MEU3MTgzMjcwYWY4MThCMzYzMmUiLCJpc3MiOiJ3ZWIzLXN0b3JhZ2UiLCJpYXQiOjE2ODYzMDcxOTgzMDIsIm5hbWUiOiJsZXRzLXN0YXktaW4tdG91Y2gifQ.0C7yKu2di3Ono_r9tLGXAk7hn0GzcvOWEkZuvsJ7fy4",
+  });
+
+  async function getName(repository: Repository<Config>) {
+    return await Name.from(repository.configuration.key);
+  }
+
+  async function publish(repository: Repository<Config>, path: string) {
+    const store = useWeb3RepositoryStore();
+
+    if (!repository.configuration.key) throw new Error('Web3 repository not initialized properly, "key" missing.');
+    const name = await getName(repository);
+
+    const revisionRaw = store.revision.get(name.toString());
+    const revision = !revisionRaw
+      ? await Name.v0(name, path)
+      : await Name.increment(Name.Revision.decode(revisionRaw), path);
+    store.revision.set(name.toString(), Name.Revision.encode(revision));
+    console.log(`web3.publish: path ${path} -> name ${name.toString()} -> revision ${revision.name}`);
+
+    await Name.publish(revision, name.key);
+  }
+
+  async function latest(name: Name.Name) {
+    const revision = await Name.resolve(name);
+    return revision.value;
+  }
+
+  async function get(source: RepositorySource<Source>, address: string) {
+    // TODO following line throws if user B pulls for updates of user A while user A just added the web3 module and never published an update so far - the name doesn't yet resolve to a revision.
+    const cid = await latest(Name.parse(source.configuration.name));
+    console.log('cid', cid);
+    const res = await client.get(cid);
+    console.log('res', res);
+    if (!res?.ok) {
+      throw new Error(`Failed to get ${cid}${res ? `- [${res.status}] ${res.statusText}` : ''}`)
+    }
+
+    const files = await res.files();
+    console.log('files #', files.length, files);
+    console.log('address', address);
+    const file = files.find(file => file.name == address);
+    console.log('file', file);
+    if (file) return file.arrayBuffer();
+  }
+
+  return {
+    async createRepository() {
+      const nameObj = await Name.create();
+      const name = nameObj.toString();
+      const key = nameObj.key.bytes;
+      const repoConfig = { name, key }
+      const repository = {
+        id: Repositories.web3,
+        configuration: repoConfig
+      }
+      console.warn(repository);
+      return repository;
+    },
+
+    async pullUpdate(source, address) {
+      return get(source, address);
+    },
+
+    // async pullUpdates(sources, address, progress = ref(0)) {
+    //   const updates: Array<RepositoryEntry<Source>> = [];
+    //   for (const source of sources) {
+    //     const data = await get(source, address);
+    //     progress.value++;
+    //     if (data) {
+    //       updates.push({ source, data });
+    //     }
+    //     await nextTick();
+    //   }
+    //   return updates;
+    // },
+
+    async pushUpdates(repository, updates) {
+      const oldCid = await latest(await getName(repository));
+
+      const files = updates.map(update => new File([update.data], update.address));
+      const cid = await client.put(files);
+      console.log('web3.push: old CID', oldCid, 'new CID', cid, '# updates', updates.length, 'data size', sum(files.map(file => file.size)));
+      publish(repository, cid);
+
+      client.delete(oldCid);
+    },
+
+    async source(repository) {
+      const name = (await getName(repository)).toString();
+      return {
+        repository: Repositories.web3,
+        configuration: { name },
+      }
+    },
+  };
+}
